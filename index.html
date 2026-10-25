@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arabic Handwriting Recognition — Dissertation</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2a2d3a;
+      --accent:   #6c8ef5;
+      --accent2:  #a78bfa;
+      --green:    #34d399;
+      --yellow:   #fbbf24;
+      --red:      #f87171;
+      --text:     #e2e8f0;
+      --muted:    #8892a4;
+      --r:        12px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.7;
+      font-size: 16px;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(15,17,23,.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 56px;
+    }
+    nav .brand { font-weight: 700; font-size: .95rem; color: var(--text); letter-spacing: .02em; }
+    nav ul { list-style: none; display: flex; gap: 1.8rem; }
+    nav a { color: var(--muted); text-decoration: none; font-size: .88rem; transition: color .2s; }
+    nav a:hover { color: var(--text); }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
+    section { padding: 5rem 0; }
+    section + section { border-top: 1px solid var(--border); }
+
+    /* ── HERO ── */
+    #hero {
+      padding: 7rem 0 5rem;
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(108,142,245,.15) 0%, transparent 70%);
+    }
+    .hero-tag {
+      display: inline-block; font-size: .78rem; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--accent); background: rgba(108,142,245,.12);
+      border: 1px solid rgba(108,142,245,.25); border-radius: 999px;
+      padding: .3rem .9rem; margin-bottom: 1.5rem;
+    }
+    h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800; line-height: 1.15;
+      background: linear-gradient(135deg, #e2e8f0 30%, var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1.4rem;
+    }
+    .hero-sub {
+      font-size: 1.1rem; color: var(--muted); max-width: 640px;
+      margin-bottom: 2.5rem;
+    }
+    .badge-row { display: flex; flex-wrap: wrap; gap: .6rem; }
+    .badge {
+      font-size: .78rem; font-weight: 600; padding: .3rem .75rem;
+      border-radius: 999px; border: 1px solid;
+    }
+    .badge-blue  { color: #93c5fd; border-color: rgba(147,197,253,.3); background: rgba(147,197,253,.08); }
+    .badge-green { color: #6ee7b7; border-color: rgba(110,231,183,.3); background: rgba(110,231,183,.08); }
+    .badge-purple{ color: #c4b5fd; border-color: rgba(196,181,253,.3); background: rgba(196,181,253,.08); }
+
+    /* ── STAT TILES ── */
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;
+      margin-top: 3rem;
+    }
+    .stat-tile {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+      padding: 1.4rem 1.2rem;
+    }
+    .stat-value { font-size: 2rem; font-weight: 800; color: var(--accent); }
+    .stat-label { font-size: .82rem; color: var(--muted); margin-top: .25rem; }
+
+    /* ── SECTION HEADINGS ── */
+    h2 {
+      font-size: 1.8rem; font-weight: 700; margin-bottom: .5rem;
+      background: linear-gradient(90deg, #e2e8f0, #a0aec0);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .section-intro { color: var(--muted); max-width: 680px; margin-bottom: 2.5rem; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 1.6rem;
+    }
+    .card h3 { font-size: 1rem; font-weight: 700; margin-bottom: .6rem; }
+    .card p  { color: var(--muted); font-size: .9rem; line-height: 1.6; }
+
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+
+    /* ── MODEL PROGRESSION ── */
+    .model-list { display: flex; flex-direction: column; gap: .85rem; }
+    .model-row {
+      display: grid; grid-template-columns: 1fr 180px 48px;
+      align-items: center; gap: 1rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 1rem 1.2rem;
+      transition: border-color .2s;
+    }
+    .model-row:hover { border-color: var(--accent); }
+    .model-row.best { border-color: var(--green); background: rgba(52,211,153,.04); }
+    .model-name { font-weight: 600; font-size: .95rem; }
+    .model-desc { font-size: .82rem; color: var(--muted); }
+    .model-bar-wrap { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .model-bar { height: 100%; border-radius: 4px; transition: width .6s ease; }
+    .model-acc { font-size: .9rem; font-weight: 700; text-align: right; color: var(--text); }
+    .best-tag {
+      display: inline-block; font-size: .68rem; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--green); background: rgba(52,211,153,.1);
+      border: 1px solid rgba(52,211,153,.25); border-radius: 999px;
+      padding: .15rem .6rem; margin-top: .2rem;
+    }
+
+    /* ── CHART ── */
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r); padding: 2rem;
+    }
+    .chart-wrap { position: relative; height: 320px; }
+
+    /* ── ARABIC CHARS ── */
+    .char-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: .5rem;
+      direction: rtl;
+    }
+    .char-cell {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; height: 52px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.6rem; transition: all .2s; cursor: default;
+    }
+    .char-cell:hover { border-color: var(--accent); background: rgba(108,142,245,.08); transform: scale(1.08); }
+
+    /* ── ARCHITECTURE ── */
+    .arch-flow {
+      display: flex; flex-direction: column; gap: 0;
+      align-items: center; max-width: 400px;
+    }
+    .arch-block {
+      width: 100%; padding: .85rem 1.2rem;
+      border: 1px solid var(--border); border-radius: var(--r);
+      font-size: .88rem; font-weight: 600;
+      background: var(--surface); text-align: center;
+      position: relative;
+    }
+    .arch-block.highlight { border-color: var(--accent); background: rgba(108,142,245,.08); }
+    .arch-block.highlight2 { border-color: var(--accent2); background: rgba(167,139,250,.08); }
+    .arch-arrow {
+      height: 28px; width: 2px; background: var(--border);
+      position: relative;
+    }
+    .arch-arrow::after {
+      content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+      border: 5px solid transparent; border-top-color: var(--border); margin-top: -1px;
+    }
+    .arch-label { font-size: .75rem; color: var(--muted); margin-top: .2rem; }
+
+    .arch-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+
+    /* ── CHALLENGE TABLE ── */
+    table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    th { background: rgba(108,142,245,.08); color: var(--accent); font-weight: 600; text-align: left; padding: .7rem 1rem; border-bottom: 1px solid var(--border); }
+    td { padding: .65rem 1rem; border-bottom: 1px solid var(--border); color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    .pill {
+      display: inline-block; font-size: .75rem; font-weight: 600;
+      padding: .15rem .55rem; border-radius: 999px;
+    }
+    .pill-green  { color: var(--green);  background: rgba(52,211,153,.1);  border: 1px solid rgba(52,211,153,.2); }
+    .pill-yellow { color: var(--yellow); background: rgba(251,191,36,.1);  border: 1px solid rgba(251,191,36,.2); }
+    .pill-red    { color: var(--red);    background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.2); }
+
+    /* ── CONCLUSION ── */
+    .conclusion-box {
+      background: linear-gradient(135deg, rgba(108,142,245,.08), rgba(167,139,250,.08));
+      border: 1px solid rgba(108,142,245,.3); border-radius: var(--r);
+      padding: 2rem;
+    }
+    .conclusion-box p { color: var(--text); }
+    .conclusion-box ul { list-style: none; display: flex; flex-direction: column; gap: .5rem; margin-top: 1rem; }
+    .conclusion-box li { display: flex; gap: .75rem; font-size: .92rem; }
+    .conclusion-box li::before { content: '→'; color: var(--accent); font-weight: 700; flex-shrink: 0; }
+
+    footer {
+      border-top: 1px solid var(--border); padding: 2.5rem 0;
+      text-align: center; color: var(--muted); font-size: .83rem;
+    }
+
+    @media (max-width: 640px) {
+      .arch-cols { grid-template-columns: 1fr; }
+      .model-row { grid-template-columns: 1fr 48px; }
+      .model-bar-wrap { display: none; }
+      nav ul { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="brand">Arabic Handwriting Recognition</span>
+  <ul>
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#models">Models</a></li>
+    <li><a href="#results">Results</a></li>
+    <li><a href="#architecture">Architecture</a></li>
+    <li><a href="#conclusion">Conclusion</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-tag">MSc Dissertation</div>
+    <h1>Lightweight Attention-Based CNNs<br/>for Arabic Handwriting Recognition</h1>
+    <p class="hero-sub">
+      An empirical study on resource-efficient architectural modifications —
+      combining residual connections and channel-wise attention to push
+      recognition accuracy on the HIJJA dataset.
+    </p>
+    <div class="badge-row">
+      <span class="badge badge-blue">PyTorch / TensorFlow</span>
+      <span class="badge badge-green">HIJJA Dataset</span>
+      <span class="badge badge-purple">28 Arabic Characters</span>
+      <span class="badge badge-blue">Children's Handwriting</span>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-tile">
+        <div class="stat-value">93.2%</div>
+        <div class="stat-label">Peak test accuracy (ResNet-13 + SE)</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-value">+3pp</div>
+        <div class="stat-label">Improvement over baseline</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-value">28</div>
+        <div class="stat-label">Arabic character classes</div>
+      </div>
+      <div class="stat-tile">
+        <div class="stat-value">5</div>
+        <div class="stat-label">Model variants evaluated</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="container">
+    <h2>The Problem</h2>
+    <p class="section-intro">
+      Arabic script poses unique challenges that make handwriting recognition
+      substantially harder than Latin-script systems.
+    </p>
+    <div class="cards-grid">
+      <div class="card">
+        <h3>Cursive Connectivity</h3>
+        <p>Arabic letters change shape depending on their position within a word — a character
+        may have up to four distinct forms (isolated, initial, medial, final).</p>
+      </div>
+      <div class="card">
+        <h3>Rich Ligatures</h3>
+        <p>Characters join in complex ways that alter stroke geometry, making clean
+        segmentation of individual glyphs difficult even before recognition begins.</p>
+      </div>
+      <div class="card">
+        <h3>Child Handwriting Variance</h3>
+        <p>The HIJJA dataset specifically captures children's writing — irregular
+        stroke pressure, inconsistent sizing, and untrained letter formation
+        amplify intra-class variance dramatically.</p>
+      </div>
+      <div class="card">
+        <h3>Edge Deployment Constraint</h3>
+        <p>Target use cases are low-resource devices (smart classrooms, mobile
+        assistive tools). Overparameterised models are impractical — accuracy
+        must be achieved within a tight computational budget.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 3rem;">
+      <h3 style="margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">
+        The HIJJA Dataset — 28 Isolated Arabic Characters
+      </h3>
+      <p style="color: var(--muted); font-size: .88rem; margin-bottom: 1rem;">
+        Each character is represented as a 32×32 grayscale image, labelled 1–28.
+        Hover to highlight.
+      </p>
+      <div class="char-grid">
+        <!-- 28 Arabic characters + Hamza -->
+        <div class="char-cell" title="Alef">أ</div>
+        <div class="char-cell" title="Ba">ب</div>
+        <div class="char-cell" title="Ta">ت</div>
+        <div class="char-cell" title="Tha">ث</div>
+        <div class="char-cell" title="Jim">ج</div>
+        <div class="char-cell" title="Ha">ح</div>
+        <div class="char-cell" title="Kha">خ</div>
+        <div class="char-cell" title="Dal">د</div>
+        <div class="char-cell" title="Dhal">ذ</div>
+        <div class="char-cell" title="Ra">ر</div>
+        <div class="char-cell" title="Zay">ز</div>
+        <div class="char-cell" title="Sin">س</div>
+        <div class="char-cell" title="Shin">ش</div>
+        <div class="char-cell" title="Sad">ص</div>
+        <div class="char-cell" title="Dad">ض</div>
+        <div class="char-cell" title="Ta (emphatic)">ط</div>
+        <div class="char-cell" title="Dha (emphatic)">ظ</div>
+        <div class="char-cell" title="Ayn">ع</div>
+        <div class="char-cell" title="Ghayn">غ</div>
+        <div class="char-cell" title="Fa">ف</div>
+        <div class="char-cell" title="Qaf">ق</div>
+        <div class="char-cell" title="Kaf">ك</div>
+        <div class="char-cell" title="Lam">ل</div>
+        <div class="char-cell" title="Mim">م</div>
+        <div class="char-cell" title="Nun">ن</div>
+        <div class="char-cell" title="Ha (end)">ه</div>
+        <div class="char-cell" title="Waw">و</div>
+        <div class="char-cell" title="Ya">ي</div>
+        <div class="char-cell" title="Hamza">ء</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODELS -->
+<section id="models">
+  <div class="container">
+    <h2>Model Progression</h2>
+    <p class="section-intro">
+      The study follows a systematic build-up: start from a faithful baseline
+      replication, then evaluate two attention mechanisms, then switch the backbone,
+      then combine the best of each.
+    </p>
+
+    <div class="model-list">
+
+      <div class="model-row">
+        <div>
+          <div class="model-name">Baseline CNN</div>
+          <div class="model-desc">3 conv blocks with LRN + 2 dense layers. Replicates the original HIJJA paper architecture exactly.</div>
+        </div>
+        <div>
+          <div class="model-bar-wrap">
+            <div class="model-bar" style="width:90.2%; background: var(--muted);"></div>
+          </div>
+        </div>
+        <div class="model-acc">90.2%</div>
+      </div>
+
+      <div class="model-row">
+        <div>
+          <div class="model-name">Baseline + CBAM</div>
+          <div class="model-desc">Adds Convolutional Block Attention Module (channel + spatial attention) to the baseline.</div>
+        </div>
+        <div>
+          <div class="model-bar-wrap">
+            <div class="model-bar" style="width:90.2%; background: var(--yellow);"></div>
+          </div>
+        </div>
+        <div class="model-acc" style="color: var(--yellow);">~90.2%</div>
+      </div>
+
+      <div class="model-row">
+        <div>
+          <div class="model-name">Baseline + SE</div>
+          <div class="model-desc">Adds Squeeze-and-Excitation block (channel recalibration only). Lightweight overhead, measurable gain.</div>
+        </div>
+        <div>
+          <div class="model-bar-wrap">
+            <div class="model-bar" style="width:90.7%; background: var(--accent);"></div>
+          </div>
+        </div>
+        <div class="model-acc" style="color: var(--accent);">90.7%</div>
+      </div>
+
+      <div class="model-row">
+        <div>
+          <div class="model-name">ResNet-13</div>
+          <div class="model-desc">Custom 13-layer residual backbone. Skip connections stabilise training over deeper feature extraction.</div>
+        </div>
+        <div>
+          <div class="model-bar-wrap">
+            <div class="model-bar" style="width:92.8%; background: var(--accent2);"></div>
+          </div>
+        </div>
+        <div class="model-acc" style="color: var(--accent2);">92.8%</div>
+      </div>
+
+      <div class="model-row best">
+        <div>
+          <div class="model-name">ResNet-13 + SE <span class="best-tag">Best</span></div>
+          <div class="model-desc">Fuses the residual backbone with SE channel attention. Peak accuracy — the final recommended architecture.</div>
+        </div>
+        <div>
+          <div class="model-bar-wrap">
+            <div class="model-bar" style="width:93.2%; background: var(--green);"></div>
+          </div>
+        </div>
+        <div class="model-acc" style="color: var(--green);">93.2%</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section id="results">
+  <div class="container">
+    <h2>Experimental Results</h2>
+    <p class="section-intro">
+      Accuracy on the held-out HIJJA test set across all configurations,
+      with key findings from the ablation study.
+    </p>
+
+    <div class="chart-card" style="margin-bottom: 2rem;">
+      <div class="chart-wrap">
+        <canvas id="accChart"></canvas>
+      </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Test Accuracy</th>
+            <th>Δ vs Baseline</th>
+            <th>Attention</th>
+            <th>Backbone</th>
+            <th>Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Baseline CNN</td>
+            <td>90.2%</td>
+            <td>—</td>
+            <td>None</td>
+            <td>Vanilla CNN</td>
+            <td><span class="pill pill-yellow">Reference</span></td>
+          </tr>
+          <tr>
+            <td>Baseline + CBAM</td>
+            <td>~90.2%</td>
+            <td>≈ 0</td>
+            <td>CBAM (ch + spatial)</td>
+            <td>Vanilla CNN</td>
+            <td><span class="pill pill-red">No gain</span></td>
+          </tr>
+          <tr>
+            <td>Baseline + SE</td>
+            <td>90.7%</td>
+            <td>+0.5pp</td>
+            <td>SE (channel only)</td>
+            <td>Vanilla CNN</td>
+            <td><span class="pill pill-green">Marginal gain</span></td>
+          </tr>
+          <tr>
+            <td>ResNet-13</td>
+            <td>92.8%</td>
+            <td>+2.6pp</td>
+            <td>None</td>
+            <td>ResNet-13</td>
+            <td><span class="pill pill-green">Strong gain</span></td>
+          </tr>
+          <tr>
+            <td><strong>ResNet-13 + SE</strong></td>
+            <td><strong>93.2%</strong></td>
+            <td><strong>+3.0pp</strong></td>
+            <td>SE (channel only)</td>
+            <td>ResNet-13</td>
+            <td><span class="pill pill-green">Peak ✓</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 2rem;" class="cards-grid">
+      <div class="card">
+        <h3>Why CBAM didn't help</h3>
+        <p>The spatial attention branch adds parameters without providing
+        information the network couldn't already extract from local receptive fields.
+        On 32×32 isolated characters, global spatial context is limited — channel
+        recalibration is sufficient.</p>
+      </div>
+      <div class="card">
+        <h3>Why SE works</h3>
+        <p>SE blocks learn to amplify channels that are diagnostic for a given character
+        (e.g. dot-carrying channels for ب vs. ت vs. ث) at negligible cost — two
+        fully-connected layers with a small reduction ratio.</p>
+      </div>
+      <div class="card">
+        <h3>Why ResNet dominates</h3>
+        <p>Residual connections solve gradient degradation, allowing deeper feature
+        hierarchies to form. Stroke curvature and diacritic placement — the
+        distinguishing features in Arabic — benefit significantly from deeper representations.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="container">
+    <h2>Architecture Overview</h2>
+    <p class="section-intro">
+      The best-performing architecture: a ResNet-13 backbone with
+      Squeeze-and-Excitation blocks fused into each residual unit.
+    </p>
+    <div class="arch-cols">
+      <div>
+        <div class="arch-flow">
+          <div class="arch-block">Input — 32 × 32 × 1 grayscale</div>
+          <div class="arch-arrow"></div>
+          <div class="arch-block">Conv2D 3×3 · BN · ReLU<br/><span class="arch-label">Initial representation layer</span></div>
+          <div class="arch-arrow"></div>
+          <div class="arch-block highlight">Residual Block × 3 stages<br/><span class="arch-label">Filters: 64 → 128 → 256</span></div>
+          <div class="arch-arrow"></div>
+          <div class="arch-block highlight2">SE Block (per residual unit)<br/><span class="arch-label">Global avg pool → FC↓ → FC↑ → scale</span></div>
+          <div class="arch-arrow"></div>
+          <div class="arch-block">⊕ Skip connection addition</div>
+          <div class="arch-arrow"></div>
+          <div class="arch-block">Global Average Pooling</div>
+          <div class="arch-arrow"></div>
+          <div class="arch-block" style="border-color: var(--green);">Dense Softmax → 28 classes</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:1rem;">
+        <div class="card">
+          <h3>Squeeze-and-Excitation Block</h3>
+          <p style="margin-bottom:.8rem;">Recalibrates channel responses by learning which feature maps are most
+          informative for each class:</p>
+          <ol style="color: var(--muted); font-size:.85rem; padding-left:1.2rem; line-height:2;">
+            <li>Global average pool → scalar per channel</li>
+            <li>FC layer with reduction ratio R (↓ dimensionality)</li>
+            <li>ReLU non-linearity</li>
+            <li>FC layer (↑ back to C channels)</li>
+            <li>Sigmoid → per-channel scale weights</li>
+            <li>Element-wise multiply back onto feature map</li>
+          </ol>
+        </div>
+        <div class="card">
+          <h3>ResNet-13 Depth</h3>
+          <p>13 weight layers: 1 stem + 3 stages × 2 residual blocks × 2 conv layers each.
+          Deep enough to capture multi-scale Arabic stroke features; shallow enough
+          to remain fast on CPUs.</p>
+        </div>
+        <div class="card">
+          <h3>Training Setup</h3>
+          <p>Adam optimiser · lr 0.001 · batch 64 · EarlyStopping (patience 15) ·
+          ReduceLROnPlateau (patience 7) · seed 42 for reproducibility.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONCLUSION -->
+<section id="conclusion">
+  <div class="container">
+    <h2>Conclusion</h2>
+    <p class="section-intro">
+      The study demonstrates that the right combination of lightweight enhancements
+      outperforms naive parameter scaling.
+    </p>
+    <div class="conclusion-box">
+      <p style="font-size:1.05rem; font-weight:600; margin-bottom:.5rem;">
+        ResNet-13 + SE achieves 93.2% on HIJJA — 3 percentage points above the
+        original paper's baseline — with a parameter count that remains viable
+        for real-time edge deployment.
+      </p>
+      <ul>
+        <li>Residual connections are the single largest driver of improvement; backbone architecture matters more than attention choice.</li>
+        <li>Channel-wise SE attention provides a consistent marginal gain (~0.4pp) at negligible cost — it should always be included.</li>
+        <li>CBAM's spatial branch is redundant for small, isolated character images; spatial attention is better suited to scene-text problems.</li>
+        <li>The architecture is immediately applicable to assistive educational technology for Arabic literacy in low-resource settings.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    Arabic Handwriting Recognition — Dissertation · HIJJA Dataset ·
+    <a href="https://github.com/m-aljhani/HIJJA" style="color:var(--accent); text-decoration:none;">Dataset source</a>
+  </div>
+</footer>
+
+<script>
+  // Accuracy bar chart
+  const ctx = document.getElementById('accChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Baseline CNN', 'Baseline + CBAM', 'Baseline + SE', 'ResNet-13', 'ResNet-13 + SE'],
+      datasets: [{
+        label: 'Test Accuracy (%)',
+        data: [90.2, 90.2, 90.7, 92.8, 93.2],
+        backgroundColor: [
+          'rgba(136,146,164,.5)',
+          'rgba(251,191,36,.5)',
+          'rgba(108,142,245,.6)',
+          'rgba(167,139,250,.6)',
+          'rgba(52,211,153,.7)',
+        ],
+        borderColor: [
+          'rgba(136,146,164,.9)',
+          'rgba(251,191,36,.9)',
+          'rgba(108,142,245,.9)',
+          'rgba(167,139,250,.9)',
+          'rgba(52,211,153,.9)',
+        ],
+        borderWidth: 1.5,
+        borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#8892a4', font: { size: 12 } },
+          grid:  { color: 'rgba(42,45,58,.8)' },
+        },
+        y: {
+          min: 88,
+          max: 94,
+          ticks: { color: '#8892a4', font: { size: 12 }, callback: v => v + '%' },
+          grid:  { color: 'rgba(42,45,58,.8)' },
+        }
+      }
+    }
+  });
+
+  // Animate bars on scroll
+  const bars = document.querySelectorAll('.model-bar');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.width = e.target.dataset.target || e.target.style.width;
+      }
+    });
+  }, { threshold: .3 });
+  bars.forEach(b => observer.observe(b));
+</script>
+
+</body>
+</html>

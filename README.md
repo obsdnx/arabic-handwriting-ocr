@@ -1,82 +1,147 @@
-# Lightweight Attention-Based CNNs for Arabic Handwriting Recognition (AHR)
-
-This repository contains the official implementation of our study on optimizing Convolutional Neural Networks (CNNs) for Arabic Handwritten Character Recognition. By integrating lightweight attention mechanisms and residual connections, we significantly boost recognition accuracy while maintaining computational efficiency, making the models ideal for low-resource and real-time environments.
-
-The models are trained and evaluated on the HIJJA dataset, a large-scale dataset of isolated Arabic characters written by children.
-
-# Lightweight Attention-Based CNNs for Arabic Handwriting Recognition (AHR)
+# Lightweight Attention-Based CNNs for Arabic Handwriting Recognition
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Framework: PyTorch](https://img.shields.io/badge/Framework-PyTorch-ee4c2c.svg)](https://pytorch.org/)
+[![Framework: TensorFlow](https://img.shields.io/badge/Framework-TensorFlow-ff6f00.svg)](https://www.tensorflow.org/)
 [![Dataset: HIJJA](https://img.shields.io/badge/Dataset-HIJJA-green.svg)](https://github.com/m-aljhani/HIJJA)
 
-An elegant, highly optimized implementation of lightweight Convolutional Neural Networks (CNNs) augmented with structural attention mechanisms and residual connections for **Arabic Handwriting Recognition (AHR)**. 
-
-This repository accompanies our empirical study evaluating resource-efficient architectural modifications on the **HIJJA dataset**—a comprehensive collection of isolated Arabic handwritten characters written by children. By strategically combining a compact **ResNet-13** backbone with **Squeeze-and-Excitation (SE)** blocks, this architecture achieves **93.2% recognition accuracy** while maintaining a highly constrained computational footprint ideal for real-time edge processing and educational technology deployment.
+An empirical study evaluating lightweight CNN modifications for Arabic Handwriting Recognition (AHR) on the **HIJJA dataset** — a large-scale collection of isolated Arabic characters written by children. By combining a compact **ResNet-13** backbone with **Squeeze-and-Excitation (SE)** attention, the final architecture achieves **93.2% test accuracy** while remaining viable for real-time edge deployment.
 
 ---
 
-## 📖 Table of Contents
-- [Executive Abstract](#-executive-abstract)
-- [Key Features](#-key-features)
-- [Architecture Overview](#-architecture-overview)
-- [Experimental Results](#-experimental-results)
-- [Repository Structure](#-repository-structure)
-- [Installation & Environment Setup](#-installation--environment-setup)
-- [Dataset Preparation](#-dataset-preparation)
-- [Usage Guidelines](#-usage-guidelines)
-- [Keywords](#-keywords)
-- [License](#-license)
+## Table of Contents
+
+- [Abstract](#abstract)
+- [Results](#results)
+- [Architecture](#architecture)
+- [Repository Structure](#repository-structure)
+- [Setup](#setup)
+- [Usage](#usage)
+- [Dataset](#dataset)
 
 ---
 
-## 📝 Executive Abstract
+## Abstract
 
-Arabic Handwriting Recognition (AHR) introduces distinct algorithmic challenges due to the structural complexity, cursiveness, and rich ligatures inherent to Arabic script, exacerbated by the steep variability in individual penmanship. While deep, over-parameterized Convolutional Neural Networks (CNNs) exhibit state-of-the-art performance, deploying them to real-time, low-resource edge environments (such as assistive mobile applications or smart classrooms) requires a meticulous balance between accuracy and structural efficiency.
+Arabic Handwriting Recognition poses distinct challenges: cursive connectivity, rich ligatures, and high intra-class variance from irregular child penmanship. Over-parameterised CNNs achieve strong accuracy but are impractical for low-resource environments such as assistive mobile apps or smart classrooms.
 
-This work systematically investigates lightweight design adjustments to solve this trade-off. Beginning with a baseline CNN adapted from established literature, we reach **90.2% accuracy** through rigorous hyperparameter tuning. We expand upon this baseline by integrating two prominent channel-wise and spatial attention layers: **Squeeze-and-Excitation (SE)** and the **Convolutional Block Attention Module (CBAM)**. While CBAM provided no statistically significant accuracy lift, the SE block improved classification to **90.7%** with nominal parameter overhead. Transitioning the backbone to a streamlined residual network (**ResNet-13**) pushes performance to **92.8%**. Ultimately, fusing **ResNet-13 with SE blocks** achieves our peak accuracy of **93.2%**, demonstrating that strategic, lightweight enhancements can deliver competitive recognition performance without compromising inference efficiency.
+This study systematically investigates lightweight design adjustments:
 
----
-
-## 🚀 Key Features
-
-* ⚡ **Resource-Optimized Layouts:** Explicitly tailored to balance competitive accuracy with microscale parameters, accelerating forward-pass inference on CPUs and low-tier edge platforms.
-* 🧠 **Granular Feature Attention:** Complete integration implementations for **Squeeze-and-Excitation (SE)** networks and **Convolutional Block Attention Modules (CBAM)** to systematically evaluate feature recalibration in Arabic orthography.
-* 📉 **Stabilized Residual Pipelines:** A customized **ResNet-13** variant designed to preserve spatial feature maps and resolve gradient degradation across fine-grained script variations.
-* 🧒 **Robust Child Hand-Composition Evaluation:** Finetuned specifically for the high intra-class variance and irregular strokes standard in children's handwriting profiles present in the HIJJA dataset.
+1. A **baseline CNN** replicating the original HIJJA paper reaches **90.2% accuracy** after hyperparameter tuning.
+2. Adding **CBAM** (channel + spatial attention) provides no statistically significant lift.
+3. Adding an **SE block** (channel recalibration only) improves accuracy to **90.7%** with negligible parameter overhead.
+4. Replacing the backbone with **ResNet-13** pushes performance to **92.8%**.
+5. Fusing **ResNet-13 + SE** achieves the peak of **93.2%**, confirming that strategic lightweight enhancements can close the gap with larger models.
 
 ---
 
-## 📐 Architecture Overview
+## Results
 
-The core paradigm emphasizes modular block integration. Below is the conceptual structural pipeline for the optimal configuration:
+| Model            | Test Accuracy | Δ vs Baseline | Attention          | Backbone    |
+|------------------|:-------------:|:-------------:|--------------------|-------------|
+| Baseline CNN     | 90.2%         | —             | None               | Vanilla CNN |
+| Baseline + CBAM  | ~90.2%        | ≈ 0           | CBAM (ch + spatial)| Vanilla CNN |
+| Baseline + SE    | 90.7%         | +0.5pp        | SE (channel only)  | Vanilla CNN |
+| ResNet-13        | 92.8%         | +2.6pp        | None               | ResNet-13   |
+| **ResNet-13 + SE** | **93.2%** | **+3.0pp**    | SE (channel only)  | ResNet-13   |
 
-```text
-Input (Character Image) 
-       │
-       ▼
- [Conv2D + BatchNorm + ReLU] ──► Initial Representation Layer
-       │
-       ▼
-┌────────────────────────────────────────────────────────┐
-│ ResNet-13 Core Block (Iterated)                         │
-│   ├── Weight Layer (3x3 Convolution)                   │
-│   ├── BatchNorm & ReLU Activation                     │
-│   ├── Weight Layer (3x3 Convolution)                   │
-│   │                                                    │
-│   ▼                                                    │
-│ [Squeeze-and-Excitation Block]                         │
-│   ├── Global Average Pooling (Spatial Squeeze)         │
-│   ├── FC Layer (Reduction) -> FC Layer (Excitation)    │
-│   └── Scale Vector Element-wise Multiplication         │
-│                                                    │
-│   ▼                                                    │
-│ ⊕ Residual Skip Connection Addition                    │
-└────────────────────────────────────────────────────────┘
-       │
-       ▼
- [Global Average Pooling]
-       │
-       ▼
- [Dense Softmax Classifier] ──► Class Prediction (28 Arabic Alphabetical Profiles)
+Key findings:
+
+- Residual connections are the largest single driver of improvement.
+- SE attention provides a consistent marginal gain (~0.4pp) at negligible cost.
+- CBAM's spatial branch is redundant for small (32×32) isolated character images.
+
+---
+
+## Architecture
+
+The best-performing configuration (ResNet-13 + SE):
+
+```
+Input (32 × 32 × 1 grayscale)
+        │
+        ▼
+ Conv2D 3×3 · BN · ReLU        ← stem
+        │
+        ▼
+┌──────────────────────────────────┐
+│  Residual Block (×3 stages)      │  Filters: 64 → 128 → 256
+│    Conv2D 3×3 · BN · ReLU       │
+│    Conv2D 3×3 · BN              │
+│         │                       │
+│   ┌─────┴──────┐                │
+│   │  SE Block  │                │  Global avg pool → FC↓ → ReLU
+│   │            │                │  → FC↑ → Sigmoid → channel scale
+│   └─────┬──────┘                │
+│         ⊕ skip connection       │
+└──────────────────────────────────┘
+        │
+        ▼
+ Global Average Pooling
+        │
+        ▼
+ Dense · Softmax → 28 classes
+```
+
+**Training configuration:** Adam · lr 0.001 · batch 64 · EarlyStopping (patience 15) · ReduceLROnPlateau (patience 7) · seed 42.
+
+---
+
+## Repository Structure
+
+```
+.
+├── baseline.py      # Baseline CNN replicating the original HIJJA paper
+├── SE_Net.py        # SE attention placement and reduction ratio sweep
+├── CBAM.py          # CBAM attention (R × K) grid search
+├── ResNet.py        # ResNet block type, depth, and SE fusion experiments
+├── load_data.py     # Shared data loading and preprocessing utilities
+├── index.html       # Interactive results visualisation (open in browser)
+└── README.md
+```
+
+---
+
+## Setup
+
+```bash
+pip install -r requirements.txt
+```
+
+You also need a Kaggle API key configured for dataset download via `kagglehub`. See [Kaggle API docs](https://www.kaggle.com/docs/api).
+
+---
+
+## Usage
+
+Each script is self-contained and downloads the HIJJA dataset automatically on first run.
+
+```bash
+# Baseline replication
+python baseline.py
+
+# SE attention sweep
+python SE_Net.py
+
+# CBAM grid search
+python CBAM.py
+
+# ResNet + SE experiments
+python ResNet.py
+```
+
+Results are printed as a summary table at the end of each run.
+
+To view the interactive results visualisation, open `index.html` in any browser — no server required.
+
+---
+
+## Dataset
+
+**HIJJA** — Handwritten Arabic Characters Dataset  
+28 isolated Arabic character classes, written by school-age children.  
+Images: 32×32 grayscale, provided as CSV (pixel rows).
+
+- Paper: *Hijja: A Handwritten Arabic Characters Dataset* (Altwaijry & Al-Turaiki)
+- Kaggle: `mohamedgreshamahdi/hijja-dataset`
+- GitHub: https://github.com/m-aljhani/HIJJA
