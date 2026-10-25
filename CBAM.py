@@ -7,7 +7,7 @@
 #   Block Attention Module). Performs a grid search over CBAM's channel
 #   reduction ratio (R) and spatial kernel size (K) to evaluate their impact.
 #
-# Metrics Measured:a
+# Metrics Measured:
 #   - Test Accuracy & Loss
 #   - Total Parameters (Millions) & Approximate FLOPS (M/GFLOPS)
 #   - Training Time (Seconds) & Average Inference Time (ms/img)
